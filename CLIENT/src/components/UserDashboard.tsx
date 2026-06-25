@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { jsPDF } from 'jspdf';
 import { 
   User, 
   ShoppingBag, 
@@ -21,7 +22,9 @@ import {
   CreditCard,
   Settings,
   X,
-  LogOut
+  LogOut,
+  Download,
+  Printer
 } from 'lucide-react';
 import { PRODUCTS } from '../data';
 import { Product, UserProfile } from '../types';
@@ -149,6 +152,237 @@ export default function UserDashboard({
     navigator.clipboard.writeText(text);
     setCopiedCode(text);
     setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const handleDownloadPDF = (order: Order) => {
+    const doc = new jsPDF();
+    
+    // Header background (Black)
+    doc.setFillColor(10, 10, 10);
+    doc.rect(15, 15, 180, 25, 'F');
+    
+    // Header Accent Line (Red #D90429)
+    doc.setFillColor(217, 4, 41);
+    doc.rect(15, 40, 180, 2, 'F');
+    
+    // Header Brand text
+    doc.setTextColor(245, 241, 232); // Cream white
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('STYLEE', 22, 32);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(140, 140, 140);
+    doc.text('LUXURY STREETWEAR BD', 49, 31);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(217, 4, 41); // Red accent
+    doc.setFont('helvetica', 'bold');
+    doc.text('OFFICIAL CAPSULE RECEIPT', 122, 31);
+    
+    // Order info grid
+    doc.setTextColor(110, 110, 110);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ORDER REFERENCE', 15, 52);
+    doc.text('DATE SECURED', 15, 60);
+    doc.text('TRANSACTION STATUS', 15, 68);
+    
+    doc.text('PAYMENT METHOD', 110, 52);
+    doc.text('TRACKING REFERENCE', 110, 60);
+    doc.text('ACQUISITION PORTAL', 110, 68);
+    
+    doc.setTextColor(30, 30, 30);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(order.id, 55, 52);
+    doc.text(order.date, 55, 60);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(217, 4, 41); // Red status text
+    doc.text(order.status.toUpperCase(), 55, 68);
+    
+    doc.setTextColor(30, 30, 30);
+    doc.setFont('helvetica', 'normal');
+    doc.text(order.paymentMethod.toUpperCase(), 150, 52);
+    doc.text(order.trackingNumber, 150, 60);
+    doc.text('STYLEE WEB APPS', 150, 68);
+    
+    // Horizontal separator
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.5);
+    doc.line(15, 75, 195, 75);
+    
+    // Client section
+    doc.setTextColor(110, 110, 110);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CLIENT SPECIFICATIONS', 15, 84);
+    
+    doc.setTextColor(30, 30, 30);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${profile.firstName} ${profile.lastName}`, 15, 91);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Email: ${profile.email}`, 15, 97);
+    doc.text(`Phone: ${profile.phone}`, 15, 103);
+    doc.text(`Address: ${profile.street}`, 15, 109);
+    doc.text(`${profile.city}, ${profile.postalCode}, ${profile.country}`, 15, 115);
+    
+    // Table section
+    // Header Bar
+    doc.setFillColor(245, 245, 245);
+    doc.rect(15, 123, 180, 8, 'F');
+    
+    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ITEM DESCRIPTION', 18, 128);
+    doc.text('SIZE', 110, 128);
+    doc.text('QTY', 132, 128);
+    doc.text('UNIT PRICE', 150, 128);
+    doc.text('TOTAL', 175, 128);
+    
+    // Table rows
+    let currentY = 138;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(40, 40, 40);
+    
+    order.items.forEach((item) => {
+      const name = item.product.name;
+      const truncatedName = name.length > 45 ? name.substring(0, 42) + '...' : name;
+      
+      doc.text(truncatedName, 18, currentY);
+      doc.text(item.selectedSize, 110, currentY);
+      doc.text(item.quantity.toString(), 132, currentY);
+      doc.text(`TAKA ${item.product.price.toLocaleString()}`, 150, currentY);
+      doc.text(`৳ ${(item.product.price * item.quantity).toLocaleString()}`, 175, currentY);
+      
+      // Thin row divider
+      doc.setDrawColor(245, 245, 245);
+      doc.line(15, currentY + 4, 195, currentY + 4);
+      
+      currentY += 11;
+    });
+    
+    // Summary card placement
+    const summaryY = currentY + 5;
+    
+    // Left verification stamp
+    doc.setDrawColor(217, 4, 41);
+    doc.setLineWidth(0.8);
+    doc.rect(15, summaryY, 80, 28, 'S');
+    
+    doc.setTextColor(217, 4, 41);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('STYLEE BD SECURE LOCK', 20, summaryY + 8);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(110, 110, 110);
+    doc.text('Verified VIP Capsule Dispatch Receipt.', 20, summaryY + 14);
+    doc.text('System authorized digitally, no signature needed.', 20, summaryY + 19);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`TIME SECURED: ${new Date().toISOString().slice(0,19).replace('T', ' ')}`, 20, summaryY + 24);
+    
+    // Right financial breakdown
+    doc.setFillColor(250, 250, 250);
+    doc.rect(110, summaryY, 85, 28, 'F');
+    doc.setDrawColor(235, 235, 235);
+    doc.rect(110, summaryY, 85, 28, 'S');
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(110, 110, 110);
+    doc.text('SUBTOTAL:', 115, summaryY + 8);
+    doc.text('VIP DELIVERY:', 115, summaryY + 14);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(30, 30, 30);
+    doc.text(`৳ ${order.totalPrice.toLocaleString()}`, 160, summaryY + 8);
+    doc.text('FREE DETECTED', 160, summaryY + 14);
+    
+    // Highlighted Total line
+    doc.setFillColor(217, 4, 41);
+    doc.rect(110, summaryY + 19, 85, 9, 'F');
+    doc.setTextColor(245, 241, 232);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('TOTAL CHARGED:', 115, summaryY + 25);
+    doc.text(`৳ ${order.totalPrice.toLocaleString()}`, 160, summaryY + 25);
+    
+    // Page Footer lines
+    doc.setTextColor(180, 180, 180);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text('STYLEE STREETWEAR CO. / ALL RIGHTS RESERVED 2026', 15, 282);
+    doc.text('SECURE TRANSACTION ENCRYPTED VIA 256-BIT PROTOCOL', 123, 282);
+    
+    // Save Document
+    doc.save(`STYLEE_INVOICE_${order.id}.pdf`);
+  };
+
+  const handleDownloadInvoice = (order: Order) => {
+    const itemLines = order.items.map((item, index) => {
+      const name = item.product.name;
+      const sizeAndQty = `SIZE: ${item.selectedSize} x ${item.quantity}`;
+      const price = `৳ ${(item.product.price * item.quantity).toLocaleString()}`;
+      return `${index + 1}. ${name.padEnd(35)} ${sizeAndQty.padEnd(25)} ${price}`;
+    }).join('\n');
+
+    const invoiceText = `
+========================================================================
+                         STYLEE OFFICIAL RECEIPT
+========================================================================
+ACQUISITION PORTAL   : STYLEE BD
+ORDER REFERENCE      : ${order.id}
+DATE SECURED         : ${order.date}
+TRANSACTION STATUS   : ${order.status.toUpperCase()}
+PAYMENT METHOD       : ${order.paymentMethod.toUpperCase()}
+TRACKING NUMBER      : ${order.trackingNumber}
+
+------------------------------------------------------------------------
+CLIENT SPECIFICATION & RECIPIENT INFORMATION
+------------------------------------------------------------------------
+MEMBER NAME          : ${profile.firstName} ${profile.lastName}
+EMAIL ADDRESS        : ${profile.email}
+PHONE SPECIFICATION  : ${profile.phone}
+STREET ADDRESS       : ${profile.street}
+CITY / POSTAL / CNTRY: ${profile.city}, ${profile.postalCode}, ${profile.country}
+
+------------------------------------------------------------------------
+CONSOLIDATED CAPSULES & PURCHASE BREAKDOWN
+------------------------------------------------------------------------
+${itemLines}
+
+------------------------------------------------------------------------
+FINANCIAL CONSOLIDATION
+------------------------------------------------------------------------
+SUBTOTAL             : ৳ ${order.totalPrice.toLocaleString()}
+VIP SHIPPING         : FREE CAPTURED
+TOTAL CHARGED        : ৳ ${order.totalPrice.toLocaleString()}
+
+========================================================================
+              THANK YOU FOR YOUR HIGH-TIER ACQUISITION.
+    THIS DOC REPRESENTS AN OFFICIAL TRANSACTION SPECIFIED IN 2026.
+========================================================================
+`;
+
+    const blob = new Blob([invoiceText.trim()], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `STYLEE_INVOICE_${order.id}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Status Badge Helper
@@ -807,6 +1041,30 @@ export default function UserDashboard({
                   <span>৳{selectedOrderDetails.totalPrice.toLocaleString()}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Bottom action panel of order details */}
+            <div className="flex flex-col sm:flex-row gap-3 mt-6 mb-6">
+              <button
+                onClick={() => handleDownloadPDF(selectedOrderDetails)}
+                className="flex-1 py-3 bg-[#D90429] hover:bg-[#8B0000] text-white text-[11px] font-mono uppercase tracking-[0.15em] font-bold transition-all cursor-pointer flex items-center justify-center gap-2 border border-[#D90429]"
+              >
+                <Download size={13} />
+                <span>DOWNLOAD INVOICE (.PDF)</span>
+              </button>
+              <button
+                onClick={() => handleDownloadInvoice(selectedOrderDetails)}
+                className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-[0.15em] font-bold transition-all cursor-pointer flex items-center justify-center gap-2 border border-white/5"
+              >
+                <Download size={13} />
+                <span>DOWNLOAD INVOICE (.TXT)</span>
+              </button>
+              <button
+                onClick={() => setSelectedOrderDetails(null)}
+                className="px-5 py-3 bg-black hover:bg-zinc-950 text-zinc-500 hover:text-white text-[11px] font-mono uppercase tracking-[0.15em] transition-all cursor-pointer border border-white/5"
+              >
+                CLOSE
+              </button>
             </div>
 
             {/* Footer stamp */}
